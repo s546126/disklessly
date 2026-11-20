@@ -651,11 +651,12 @@ img.avatar { background: transparent; }
 .usage-crumb:hover { background: var(--accent-bg); }
 .usage-crumb.current { color: var(--text); font-weight: 600; cursor: default; }
 .usage-sep { color: var(--faint); }
-.usage-chart { position: relative; width: 100%; margin: 6px 0; border-radius: 8px; overflow: hidden; }
-.usage-box { position: absolute; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 1px; padding: 3px 5px; overflow: hidden; white-space: nowrap; border: 0; border-radius: 3px; color: #fff; font: inherit; font-size: 11.5px; line-height: 1.25; text-align: left; cursor: default; box-sizing: border-box; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18); background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.14)); }
-/* A box that holds its children: a title strip on top, children laid out below it. */
-.usage-box.frame { flex-direction: row; align-items: center; gap: 6px; padding: 0 6px; background-image: linear-gradient(rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.16)); }
-.usage-box.frame > span { height: 18px; line-height: 18px; align-self: flex-start; }
+.usage-chart { position: relative; width: 100%; margin: 6px 0; }
+/* Flat fills from the usage palette below; a card-coloured edge separates neighbours and nested boxes. */
+.usage-box { position: absolute; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 4px 6px; overflow: hidden; white-space: nowrap; border: 1px solid var(--card); border-radius: 5px; color: #fff; font: inherit; font-size: 12px; line-height: 1.3; text-align: left; cursor: default; box-sizing: border-box; }
+/* A box that holds its children: name and size on one line at the top, children below. */
+.usage-box.frame { flex-direction: row; align-items: center; gap: 6px; padding: 0 6px; }
+.usage-box.frame > span { height: 17px; line-height: 17px; align-self: flex-start; }
 .usage-box > span { max-width: 100%; }
 .usage-box.zoomable { cursor: zoom-in; }
 .usage-box.zoomable:hover, .usage-box:focus-visible { filter: brightness(1.12); outline: 2px solid var(--focus); outline-offset: -2px; }
@@ -685,7 +686,6 @@ img.avatar { background: transparent; }
 .u-system { background: #7a7a82; }
 .u-other { background: #8a8a91; }
 .u-free { background: var(--track); color: var(--muted); border: 1px dashed var(--line-strong); }
-.usage-box.u-free { background-image: none; box-shadow: none; }
 .u-free.usage-swatch { border-style: dashed; }
 
 /* Cloud drives */

@@ -3390,11 +3390,8 @@ function drawUsageMap() {
   chart.style.height = `${height}px`;
   chart.replaceChildren();
   const box = (node, parent, rect, path, depth) => {
-    // A 1px gap between neighbours keeps the edges readable; nested boxes add their parent's frame.
-    const x = rect.x + 1;
-    const y = rect.y + 1;
-    const w = rect.w - 2;
-    const h = rect.h - 2;
+    // Each box's card-coloured border separates it from its neighbours.
+    const { x, y, w, h } = rect;
     if (w < 2 || h < 2) return;
     const kids = node.children && node.children.length ? node.children : null;
     const nested = Boolean(kids) && depth < USAGE_MAP_DEPTH && w >= 64 && h >= USAGE_HEADER + 30;
