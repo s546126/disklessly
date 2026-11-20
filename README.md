@@ -2,6 +2,12 @@
 
 # Disklessly
 
+> **Free up disk space without deleting anything.** Cleaners make room by deleting;
+> Disklessly makes room by trading a few seconds at launch for space, and keeps
+> every app and its data.
+>
+> **清理磁盘的另一种思路：用时间换空间，数据一样不丢。** 清理软件靠删东西腾空间，Disklessly 只让你打开时多等几秒，应用和数据都还在。
+
 **中文简介：** 把不常用的 macOS 应用打包存到 iCloud Drive、NAS 或 WebDAV，本机只留一个很小的替身（stub）。双击替身时再下载、校验、挂载并启动应用。256 GB 的 Mac 也够用。
 
 Disklessly moves Mac apps you rarely use out of `/Applications` and into a repo
