@@ -6,6 +6,11 @@ the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- The dashboard's disk usage map is now a nested treemap (squarified, like WinDirStat or WizTree)
+  instead of a four-row flame chart: each box's area is its size, boxes with room show their
+  children under a title strip, and the map keeps about a 16:9 shape and redraws when the window
+  is resized. Click to zoom, the path above, the hover line and the right-click menu work as before.
+
 ## [0.3.0] - 2026-11-14
 
 - Every session archive path (CLI apply, dashboard apply, settling pending rows) scans the user's

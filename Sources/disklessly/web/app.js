@@ -3315,47 +3315,7 @@ function renderUsage() {
 
   const focus = trail[trail.length - 1].node;
   chart.hidden = false;
-  chart.replaceChildren();
-  const levels = 4;
-  const rowHeight = 30;
-  chart.style.height = `${levels * rowHeight}px`;
-  const draw = (node, parent, left, width, depth, path) => {
-    if (depth >= levels || width < 0.35) return;
-    const box = el("button", `usage-box u-${node.kind}`);
-    box.type = "button";
-    box.style.left = `${left}%`;
-    box.style.width = `calc(${width}% - 2px)`;
-    box.style.top = `${depth * rowHeight}px`;
-    box.style.height = `${rowHeight - 2}px`;
-    const label = usageLabel(node, parent);
-    const pct = focus.bytes ? `${((node.bytes / focus.bytes) * 100).toFixed(node.bytes / focus.bytes < 0.1 ? 1 : 0)}%` : "";
-    if (width > 4) box.append(el("span", "usage-name", label), width > 9 ? el("span", "usage-size", bytes(node.bytes)) : document.createTextNode(""));
-    const full = usageLabelBoth(node, parent);
-    const named = node.key && ["bundle", "cache", "data"].includes(node.key) && parent && parent.name && parent.key == null ? `${parent.name} · ${full}` : full;
-    box.title = `${named} · ${bytes(node.bytes)} · ${pct}`;
-    box.setAttribute("aria-label", box.title);
-    const zoomable = Boolean(node.children && node.children.length) && depth > 0;
-    if (zoomable) box.classList.add("zoomable");
-    box.addEventListener("click", () => {
-      if (!zoomable) return;
-      usageFocus = path;
-      renderUsage();
-    });
-    box.addEventListener("mouseenter", () => { tip.hidden = false; tip.textContent = box.title; });
-    if (node.path) box.addEventListener("contextmenu", (event) => { event.preventDefault(); usageContextMenu(event, node, label); });
-    chart.append(box);
-    let x = left;
-    (node.children || []).forEach((child, i) => {
-      const w = node.bytes ? (child.bytes / node.bytes) * width : 0;
-      draw(child, node, x, w, depth + 1, [...path, i]);
-      x += w;
-    });
-  };
-  // The focused box fills the top row; its children and theirs sit below it.
-  draw(focus, trail.length > 1 ? trail[trail.length - 2].node : null, 0, 100, 0, usageFocus);
-  // Row 0 is the focus itself and never zooms; children are found by their parent's list.
-  const rootBox = chart.firstElementChild;
-  if (rootBox) rootBox.classList.remove("zoomable");
+  drawUsageMap();
 
   renderUsageTips(focus, trail.length === 1);
 
@@ -3370,6 +3330,122 @@ function renderUsage() {
   }
   renderCleanups(root);
 }
+
+// Squarified treemap (Bruls, Huizing, van Wijk): lays the children of one node into a rectangle so that
+// each child's area matches its share of the bytes and the boxes stay as close to square as they can.
+// Returns [{ child, index, x, y, w, h }] in pixels; children with no bytes get no box.
+function usageSquarify(children, x, y, w, h) {
+  const items = children.map((child, index) => ({ child, index, bytes: child.bytes || 0 })).filter((item) => item.bytes > 0);
+  items.sort((a, b) => b.bytes - a.bytes);
+  const total = items.reduce((sum, item) => sum + item.bytes, 0);
+  const out = [];
+  if (!total || w <= 0 || h <= 0) return out;
+  const scale = (w * h) / total;
+  for (const item of items) item.area = item.bytes * scale;
+  const worst = (row, side) => {
+    const sum = row.reduce((s, r) => s + r.area, 0);
+    let max = 0;
+    let min = Infinity;
+    for (const r of row) { max = Math.max(max, r.area); min = Math.min(min, r.area); }
+    return Math.max((side * side * max) / (sum * sum), (sum * sum) / (side * side * min));
+  };
+  const place = (row) => {
+    const sum = row.reduce((s, r) => s + r.area, 0);
+    if (w >= h) {
+      // A column on the left, as wide as the row's share.
+      const cw = sum / h;
+      let cy = y;
+      for (const r of row) { const rh = r.area / cw; out.push({ child: r.child, index: r.index, x, y: cy, w: cw, h: rh }); cy += rh; }
+      x += cw; w -= cw;
+    } else {
+      const rh = sum / w;
+      let cx = x;
+      for (const r of row) { const cw = r.area / rh; out.push({ child: r.child, index: r.index, x: cx, y, w: cw, h: rh }); cx += cw; }
+      y += rh; h -= rh;
+    }
+  };
+  let row = [];
+  for (const item of items) {
+    const side = Math.min(w, h);
+    if (row.length && worst([...row, item], side) > worst(row, side)) { place(row); row = []; }
+    row.push(item);
+  }
+  if (row.length) place(row);
+  return out;
+}
+
+const USAGE_MAP_DEPTH = 3; // nested levels drawn below the focused node
+const USAGE_HEADER = 18; // title strip of a box whose children are drawn inside it
+
+/// Draws the focused node as a nested treemap: each box's area is its size, boxes with room show their
+/// children inside under a title strip, and a box with children zooms in when clicked.
+function drawUsageMap() {
+  const chart = document.querySelector("#usage-chart");
+  const tip = document.querySelector("#usage-tip");
+  if (!usageData || !usageData.tree || chart.hidden) return;
+  const trail = usageNodeAt(usageFocus);
+  const focus = trail[trail.length - 1].node;
+  const width = Math.floor(chart.getBoundingClientRect().width) || 640;
+  const height = Math.round(Math.min(520, Math.max(220, (width * 9) / 16)));
+  chart.style.height = `${height}px`;
+  chart.replaceChildren();
+  const box = (node, parent, rect, path, depth) => {
+    // A 1px gap between neighbours keeps the edges readable; nested boxes add their parent's frame.
+    const x = rect.x + 1;
+    const y = rect.y + 1;
+    const w = rect.w - 2;
+    const h = rect.h - 2;
+    if (w < 2 || h < 2) return;
+    const kids = node.children && node.children.length ? node.children : null;
+    const nested = Boolean(kids) && depth < USAGE_MAP_DEPTH && w >= 64 && h >= USAGE_HEADER + 30;
+    const item = el("button", `usage-box u-${node.kind}${nested ? " frame" : ""}`);
+    item.type = "button";
+    item.style.left = `${x}px`;
+    item.style.top = `${y}px`;
+    item.style.width = `${w}px`;
+    item.style.height = `${h}px`;
+    const label = usageLabel(node, parent);
+    const share = focus.bytes ? node.bytes / focus.bytes : 0;
+    const pct = focus.bytes ? `${(share * 100).toFixed(share < 0.1 ? 1 : 0)}%` : "";
+    if (nested ? w >= 40 : w >= 44 && h >= 16) {
+      item.append(el("span", "usage-name", label));
+      // The size goes beside a title, or under a leaf's name when the leaf is tall enough.
+      if (nested ? w >= 120 : h >= 34) item.append(el("span", "usage-size", bytes(node.bytes)));
+    }
+    const full = usageLabelBoth(node, parent);
+    const named = node.key && ["bundle", "cache", "data"].includes(node.key) && parent && parent.name && parent.key == null ? `${parent.name} · ${full}` : full;
+    item.title = `${named} · ${bytes(node.bytes)} · ${pct}`;
+    item.setAttribute("aria-label", item.title);
+    if (kids) {
+      item.classList.add("zoomable");
+      item.addEventListener("click", () => { usageFocus = path; renderUsage(); });
+    }
+    const show = () => { tip.hidden = false; tip.textContent = item.title; };
+    item.addEventListener("mouseenter", show);
+    item.addEventListener("focus", show);
+    if (node.path) item.addEventListener("contextmenu", (event) => { event.preventDefault(); usageContextMenu(event, node, label); });
+    chart.append(item);
+    // Children are later siblings in the DOM, so they sit on top of the frame and take their own clicks.
+    if (nested) {
+      for (const cell of usageSquarify(kids, x + 2, y + USAGE_HEADER, w - 4, h - USAGE_HEADER - 2)) {
+        box(cell.child, node, cell, [...path, cell.index], depth + 1);
+      }
+    }
+  };
+  // The focused node fills the whole map (the path above names it); its children are the top boxes.
+  const parent = trail.length > 1 ? trail[trail.length - 2].node : null;
+  if (focus.children && focus.children.length) {
+    for (const cell of usageSquarify(focus.children, 0, 0, width, height)) box(cell.child, focus, cell, [...usageFocus, cell.index], 1);
+  } else {
+    box(focus, parent, { x: 0, y: 0, w: width, h: height }, usageFocus, USAGE_MAP_DEPTH);
+  }
+}
+
+let usageResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(usageResizeTimer);
+  usageResizeTimer = setTimeout(drawUsageMap, 120);
+});
 
 /// Right-click on a box that is one folder: offload it (a cloud-badged link stays) or move it to the Trash.
 /// The server applies the same safety rules again; here a refused folder shows why instead.

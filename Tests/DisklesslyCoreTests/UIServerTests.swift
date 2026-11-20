@@ -245,6 +245,8 @@ final class UIServerTests: XCTestCase {
         XCTAssertTrue(js.contains("if (pct >= 95) return \"hot\""))
         XCTAssertTrue(js.contains("if (pct >= 80) return \"warn\""))
         XCTAssertFalse(js.contains("innerHTML"))
+        // The disk usage map is a squarified treemap drawn by the page itself, with no chart library.
+        XCTAssertTrue(js.contains("function usageSquarify("))
         // The usage tips link out to tools the user opens in their own browser;
         // the page itself still loads nothing remote.
         XCTAssertTrue(js.contains("url: \"https://github.com/omlahore/RemoveMacAI\""))

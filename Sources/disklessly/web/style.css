@@ -645,18 +645,24 @@ img.avatar { background: transparent; }
 .license-form .field input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .license-state { font-weight: 600; }
 
-/* ---- disk usage flame chart ---- */
+/* ---- disk usage treemap: each box's area is its size; boxes with room hold their children ---- */
 .usage-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 10px 0 8px; font-size: 13px; }
 .usage-crumb { border: 0; background: transparent; color: var(--accent); padding: 2px 4px; border-radius: 6px; cursor: pointer; font: inherit; }
 .usage-crumb:hover { background: var(--accent-bg); }
 .usage-crumb.current { color: var(--text); font-weight: 600; cursor: default; }
 .usage-sep { color: var(--faint); }
-.usage-chart { position: relative; width: 100%; margin: 6px 0; }
-.usage-box { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0 6px; overflow: hidden; white-space: nowrap; border: 0; border-radius: 5px; color: #fff; font: inherit; font-size: 12px; text-align: left; cursor: default; box-sizing: border-box; }
+.usage-chart { position: relative; width: 100%; margin: 6px 0; border-radius: 8px; overflow: hidden; }
+.usage-box { position: absolute; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 1px; padding: 3px 5px; overflow: hidden; white-space: nowrap; border: 0; border-radius: 3px; color: #fff; font: inherit; font-size: 11.5px; line-height: 1.25; text-align: left; cursor: default; box-sizing: border-box; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18); background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.14)); }
+/* A box that holds its children: a title strip on top, children laid out below it. */
+.usage-box.frame { flex-direction: row; align-items: center; gap: 6px; padding: 0 6px; background-image: linear-gradient(rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.16)); }
+.usage-box.frame > span { height: 18px; line-height: 18px; align-self: flex-start; }
+.usage-box > span { max-width: 100%; }
 .usage-box.zoomable { cursor: zoom-in; }
 .usage-box.zoomable:hover, .usage-box:focus-visible { filter: brightness(1.12); outline: 2px solid var(--focus); outline-offset: -2px; }
 .usage-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
-.usage-size { opacity: 0.85; font-variant-numeric: tabular-nums; }
+.usage-box.frame .usage-name { flex: 0 1 auto; min-width: 0; }
+.usage-size { opacity: 0.85; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
+.usage-box.frame .usage-size { flex: 0 0 auto; }
 .usage-tip { min-height: 1.4em; margin: 4px 0 0; font-size: 12.5px; }
 .usage-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 10px 0 0; padding: 0; font-size: 12.5px; }
 .usage-legend-item { display: inline-flex; align-items: center; gap: 6px; }
@@ -679,6 +685,7 @@ img.avatar { background: transparent; }
 .u-system { background: #7a7a82; }
 .u-other { background: #8a8a91; }
 .u-free { background: var(--track); color: var(--muted); border: 1px dashed var(--line-strong); }
+.usage-box.u-free { background-image: none; box-shadow: none; }
 .u-free.usage-swatch { border-style: dashed; }
 
 /* Cloud drives */
